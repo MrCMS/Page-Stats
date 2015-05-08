@@ -73,7 +73,7 @@ namespace MrCMS.Web.Apps.Stats.Areas.Admin.Services
             Dictionary<int, Webpage> webpages =
                 _session.QueryOver<Webpage>()
                     .Where(webpage => webpage.Id.IsIn(ids))
-                    //.Cacheable()
+                    .Cacheable()
                     .List()
                     .ToDictionary(webpage => webpage.Id, webpage => webpage);
             foreach (PageViewResult pageViewResult in pageViewResults)
