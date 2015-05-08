@@ -1,9 +1,7 @@
 ﻿using System.Web.Mvc;
-using LinqToTwitter;
 using MrCMS.Web.Apps.Stats.Filters;
 using MrCMS.Web.Apps.Stats.Models;
 using MrCMS.Web.Apps.Stats.Services;
-using MrCMS.Website;
 using MrCMS.Website.Controllers;
 
 namespace MrCMS.Web.Apps.Stats.Controllers
