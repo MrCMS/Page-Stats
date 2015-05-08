@@ -35,10 +35,9 @@ namespace MrCMS.Web.Apps.Stats.Areas.Admin.Services
             {
                 queryOver = queryOver.Where(view => view.Url.IsInsensitiveLike(query.Url, MatchMode.Anywhere));
             }
-            if (query.From.HasValue)
-                queryOver = queryOver.Where(() => pageView.CreatedOn >= query.From);
-            if (query.To.HasValue)
-                queryOver = queryOver.Where(() => pageView.CreatedOn <= query.To);
+
+            queryOver = queryOver.Where(() => pageView.CreatedOn >= query.From && pageView.CreatedOn <= query.To);
+            
             switch (query.SearchType)
             {
                 case PageViewSearchType.UsersOnly:
@@ -74,7 +73,7 @@ namespace MrCMS.Web.Apps.Stats.Areas.Admin.Services
             Dictionary<int, Webpage> webpages =
                 _session.QueryOver<Webpage>()
                     .Where(webpage => webpage.Id.IsIn(ids))
-                    .Cacheable()
+                    //.Cacheable()
                     .List()
                     .ToDictionary(webpage => webpage.Id, webpage => webpage);
             foreach (PageViewResult pageViewResult in pageViewResults)
