@@ -10,7 +10,7 @@ namespace MrCMS.Web.Apps.Stats
     {
         protected override void RegisterApp(MrCMSAppRegistrationContext context)
         {
-            context.MapRoute("Analytics handler", "analytics/log-page-view",
+            context.MapRoute("Legacy Analytics handler", "analytics/legacy-log-page-view",
                new { controller = "Analytics", action = "LogPageView" },
                new[] { typeof(AnalyticsController).Namespace });
         }

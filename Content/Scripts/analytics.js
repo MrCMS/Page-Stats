@@ -26,7 +26,7 @@
                 session: session,
                 url: url
             }
-            $.post('/analytics/log-page-view', data);
+            $.post('/analytics/legacy-log-page-view', data);
         }
 
         return {
