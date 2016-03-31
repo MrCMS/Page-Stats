@@ -37,6 +37,7 @@ namespace MrCMS.Web.Apps.Stats.Areas.Admin.Models
             var subMenu = new SubMenu
             {
                 new ChildMenuItem("Page Views", _urlHelper.Action("Index", "PageViews")),
+                new ChildMenuItem("Page Hierarchy", _urlHelper.Action("Index", "PageHierarchy")),
             };
 
             return subMenu;

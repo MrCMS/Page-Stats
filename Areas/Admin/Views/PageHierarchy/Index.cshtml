@@ -1,0 +1,21 @@
+﻿@model dynamic
+
+@using (Html.BeginForm("ResetHierarchies", "PageHierarchy", FormMethod.Post))
+{
+    var reset = TempData["reset"] as bool? ?? false;
+
+    <fieldset>
+        <legend>
+            Reset Hierarchies
+            <span class="btn-group pull-right display-inline">
+                <button class="btn btn-primary" type="submit">Reset</button>
+            </span>
+        </legend>
+        @if (reset)
+        {
+            <div class="alert alert-success">
+                Page hierarchies reset.
+            </div>
+        }
+    </fieldset>
+}
