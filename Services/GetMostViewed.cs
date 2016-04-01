@@ -13,6 +13,7 @@ using NHibernate;
 using NHibernate.Criterion;
 using NHibernate.SqlCommand;
 using NHibernate.Transform;
+using StackExchange.Profiling;
 
 namespace MrCMS.Web.Apps.Stats.Services
 {
@@ -35,69 +36,70 @@ namespace MrCMS.Web.Apps.Stats.Services
 
         public List<T> GetTopX<T>(Webpage parent, int numberOfPages, int lastXHours = 24) where T : Webpage
         {
-            lock (LockObject)
-            {
-                return _cacheManager.Get(
-                    string.Format("get-most-read-articles.{0}.{1}.{2}", parent?.Id ?? -_site.Id, numberOfPages,
-                        lastXHours),
-                    () =>
-                    {
-                        var now = CurrentRequestData.Now;
+            var cacheKey = string.Format("get-most-read-articles.{0}.{1}.{2}", parent?.Id ?? -_site.Id, numberOfPages,
+                lastXHours);
+            using (MiniProfiler.Current.Step("Getting most read articles for key - " + cacheKey))
+                lock (LockObject)
+                {
+                    return _cacheManager.Get(
+                        cacheKey,
+                        () =>
+                        {
+                            var now = CurrentRequestData.Now;
 
-                        var fromDate = now.AddHours(-lastXHours);
+                            var fromDate = now.AddHours(-lastXHours);
 
-                        var pageTypes =
-                            TypeHelper.GetAllConcreteTypesAssignableFrom<T>().Select(x => x.FullName).ToList();
+                            var pageTypes =
+                                TypeHelper.GetAllConcreteTypesAssignableFrom<T>().Select(x => x.FullName).ToList();
 
-                        AnalyticsPageView pageView = null;
-                        AnalyticsSession analyticsSession = null;
-                        AnalyticsUser analyticsUser = null;
-                        Webpage webpageAlias = null;
-                        Webpage parentAlias = null;
+                            AnalyticsPageView pageView = null;
+                            AnalyticsSession analyticsSession = null;
+                            AnalyticsUser analyticsUser = null;
+                            Webpage webpageAlias = null;
+                            Webpage parentAlias = null;
 
-                        var queryOver = _session.QueryOver(() => pageView)
-                            .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin)
-                            .JoinAlias(() => pageView.AnalyticsSession, () => analyticsSession)
-                            .JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
-                            .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
+                            var queryOver = _statelessSession.QueryOver(() => pageView)
+                                .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin)
+                                .JoinAlias(() => pageView.AnalyticsSession, () => analyticsSession)
+                                .JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
+                                .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
                         // Filter by last x days
                         queryOver =
-                            queryOver.Where(
-                                () =>
-                                    pageView.CreatedOn >= fromDate &&
-                                    pageView.CreatedOn <= now);
+                                queryOver.Where(
+                                    () =>
+                                        pageView.CreatedOn >= fromDate &&
+                                        pageView.CreatedOn <= now);
 
-                        queryOver = queryOver.Where(() => webpageAlias.DocumentType.IsIn(pageTypes));
+                            queryOver = queryOver.Where(() => webpageAlias.DocumentType.IsIn(pageTypes));
 
                         // Remove unpublished items
                         queryOver = queryOver.Where(() => webpageAlias.Published);
 
-                        if (parent != null)
-                        {
-                            queryOver =
-                                queryOver.WithSubquery.WhereExists(
-                                    QueryOver.Of<AnalyticsHierarchyInfo>()
-                                        .Where(x => x.Page.Id == webpageAlias.Id && x.Parent.Id == parent.Id)
-                                        .Select(x => x.Id));
-                        }
+                            if (parent != null)
+                            {
+                                queryOver =
+                                    queryOver.WithSubquery.WhereExists(
+                                        QueryOver.Of<AnalyticsHierarchyInfo>()
+                                            .Where(x => x.Page.Id == webpageAlias.Id && x.Parent.Id == parent.Id)
+                                            .Select(x => x.Id));
+                            }
 
                         // Get uniques - sort
 
                         var ids = queryOver
-                            .Select(Projections.Group<AnalyticsPageView>(view => view.Webpage.Id))
-                            .OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
-                            .ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
-                            .ThenBy(Projections.CountDistinct(() => pageView.Id)).Desc
-                            .Take(numberOfPages)
-                            .Cacheable()
-                            .List<int>().ToList();
+                                .Select(Projections.Group<AnalyticsPageView>(view => view.Webpage.Id))
+                                .OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
+                                .ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
+                                .ThenBy(Projections.CountDistinct(() => pageView.Id)).Desc
+                                .Take(numberOfPages)
+                                .List<int>().ToList();
 
-                        return _session.QueryOver<T>()
-                            .Where(x => x.Id.IsIn(ids))
-                            .List()
-                            .OrderBy(article => ids.IndexOf(article.Id))
-                            .ToList();
+                            return _session.QueryOver<T>()
+                                .Where(x => x.Id.IsIn(ids))
+                                .List()
+                                .OrderBy(article => ids.IndexOf(article.Id))
+                                .ToList();
 
                         //var queryOver = _statelessSession.QueryOver<PageViewSummary>()
                         //    .Where(x => x.PageType.IsIn(pageTypes))
@@ -122,7 +124,7 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                         //return articles.OrderBy(x => articleIds.IndexOf(x.Id)).ToList();
                     }, TimeSpan.FromMinutes(15), CacheExpiryType.Absolute);
-            }
+                }
         }
 
         public class TopArticlesInfo
