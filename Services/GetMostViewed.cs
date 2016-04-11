@@ -10,18 +10,17 @@ using MrCMS.Website.Caching;
 using NHibernate;
 using NHibernate.Criterion;
 using NHibernate.SqlCommand;
-using NHibernate.Transform;
 using StackExchange.Profiling;
 
 namespace MrCMS.Web.Apps.Stats.Services
 {
     public class GetMostViewed : IGetMostViewed
     {
-        private readonly IStatelessSession _statelessSession;
-        private readonly ISession _session;
-        private readonly ICacheManager _cacheManager;
-        private readonly Site _site;
         private static readonly object LockObject = new object();
+        private readonly ICacheManager _cacheManager;
+        private readonly ISession _session;
+        private readonly Site _site;
+        private readonly IStatelessSession _statelessSession;
 
 
         public GetMostViewed(IStatelessSession statelessSession, ISession session, ICacheManager cacheManager, Site site)
@@ -62,8 +61,8 @@ namespace MrCMS.Web.Apps.Stats.Services
                                 .JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
                                 .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
-                        // Filter by last x days
-                        queryOver =
+                            // Filter by last x days
+                            queryOver =
                                 queryOver.Where(
                                     () =>
                                         pageView.CreatedOn >= fromDate &&
@@ -71,8 +70,8 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             queryOver = queryOver.Where(() => webpageAlias.DocumentType.IsIn(pageTypes));
 
-                        // Remove unpublished items
-                        queryOver = queryOver.Where(() => webpageAlias.Published);
+                            // Remove unpublished items
+                            queryOver = queryOver.Where(() => webpageAlias.Published);
 
                             if (parent != null)
                             {
@@ -87,9 +86,9 @@ namespace MrCMS.Web.Apps.Stats.Services
                                 queryOver.Where(() => webpageAlias.Site.Id == _site.Id);
                             }
 
-                        // Get uniques - sort
+                            // Get uniques - sort
 
-                        var ids = queryOver
+                            var ids = queryOver
                                 .Select(Projections.Group<AnalyticsPageView>(view => view.Webpage.Id))
                                 .OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
                                 .ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
@@ -103,29 +102,29 @@ namespace MrCMS.Web.Apps.Stats.Services
                                 .OrderBy(article => ids.IndexOf(article.Id))
                                 .ToList();
 
-                        //var queryOver = _statelessSession.QueryOver<PageViewSummary>()
-                        //    .Where(x => x.PageType.IsIn(pageTypes))
-                        //    .And(x => x.Date >= fromDate && x.Date < startOfThisHour)
-                        //    .And(x => x.Site.Id == _site.Id);
-                        //queryOver = parent == null
-                        //    ? queryOver.Where(x => x.Parent == null)
-                        //    : queryOver.Where(x => x.Parent.Id == parent.Id);
-                        //TopArticlesInfo info = null;
-                        //var topArticlesInfos = queryOver.SelectList(builder =>
-                        //{
-                        //    builder.SelectGroup(x => x.Webpage.Id).WithAlias(() => info.PageId);
-                        //    builder.SelectSum(x => x.Views).WithAlias(() => info.Count);
-                        //    return builder;
-                        //}).TransformUsing(Transformers.AliasToBean<TopArticlesInfo>())
-                        //    .OrderBy(Projections.Sum<PageViewSummary>(x => x.Views)).Desc
-                        //    .Take(numberOfPages)
-                        //    .List<TopArticlesInfo>();
-                        //var articleIds = topArticlesInfos.Select(x => x.PageId).ToList();
+                            //var queryOver = _statelessSession.QueryOver<PageViewSummary>()
+                            //    .Where(x => x.PageType.IsIn(pageTypes))
+                            //    .And(x => x.Date >= fromDate && x.Date < startOfThisHour)
+                            //    .And(x => x.Site.Id == _site.Id);
+                            //queryOver = parent == null
+                            //    ? queryOver.Where(x => x.Parent == null)
+                            //    : queryOver.Where(x => x.Parent.Id == parent.Id);
+                            //TopArticlesInfo info = null;
+                            //var topArticlesInfos = queryOver.SelectList(builder =>
+                            //{
+                            //    builder.SelectGroup(x => x.Webpage.Id).WithAlias(() => info.PageId);
+                            //    builder.SelectSum(x => x.Views).WithAlias(() => info.Count);
+                            //    return builder;
+                            //}).TransformUsing(Transformers.AliasToBean<TopArticlesInfo>())
+                            //    .OrderBy(Projections.Sum<PageViewSummary>(x => x.Views)).Desc
+                            //    .Take(numberOfPages)
+                            //    .List<TopArticlesInfo>();
+                            //var articleIds = topArticlesInfos.Select(x => x.PageId).ToList();
 
-                        //var articles = _session.QueryOver<T>().Where(x => x.Id.IsIn(articleIds)).Cacheable().List();
+                            //var articles = _session.QueryOver<T>().Where(x => x.Id.IsIn(articleIds)).Cacheable().List();
 
-                        //return articles.OrderBy(x => articleIds.IndexOf(x.Id)).ToList();
-                    }, TimeSpan.FromMinutes(15), CacheExpiryType.Absolute);
+                            //return articles.OrderBy(x => articleIds.IndexOf(x.Id)).ToList();
+                        }, TimeSpan.FromMinutes(15), CacheExpiryType.Absolute);
                 }
         }
 
