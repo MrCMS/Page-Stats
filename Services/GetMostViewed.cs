@@ -84,6 +84,10 @@ namespace MrCMS.Web.Apps.Stats.Services
                                             .Where(x => x.Page.Id == webpageAlias.Id && x.Parent.Id == parent.Id)
                                             .Select(x => x.Id));
                             }
+                            else
+                            {
+                                queryOver.Where(() => webpageAlias.Site.Id == _site.Id);
+                            }
 
                         // Get uniques - sort
 
