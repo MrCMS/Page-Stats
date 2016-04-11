@@ -4,8 +4,6 @@ using System.Linq;
 using MrCMS.Entities.Documents.Web;
 using MrCMS.Entities.Multisite;
 using MrCMS.Helpers;
-using MrCMS.Web.Apps.AzureStats.Entities;
-using MrCMS.Web.Apps.AzureStats.Helpers;
 using MrCMS.Web.Apps.Stats.Entities;
 using MrCMS.Website;
 using MrCMS.Website.Caching;
