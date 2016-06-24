@@ -98,6 +98,7 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             return _session.QueryOver<T>()
                                 .Where(x => x.Id.IsIn(ids))
+                                .Fetch(x=>x.Parent).Eager
                                 .List()
                                 .OrderBy(article => ids.IndexOf(article.Id))
                                 .ToList();
