@@ -44,7 +44,7 @@ namespace MrCMS.Web.Apps.Stats.Services
                         {
                             var now = CurrentRequestData.Now;
 
-                            var fromDate = now.AddHours(-600);
+                            var fromDate = now.AddHours(-lastXHours);
 
                             var pageTypes =
                                 TypeHelper.GetAllConcreteTypesAssignableFrom<T>().Select(x => x.FullName).ToList();
