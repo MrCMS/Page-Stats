@@ -44,21 +44,21 @@ namespace MrCMS.Web.Apps.Stats.Services
                         {
                             var now = CurrentRequestData.Now;
 
-                            var fromDate = now.AddHours(-lastXHours);
+                            var fromDate = now.AddHours(-600);
 
                             var pageTypes =
                                 TypeHelper.GetAllConcreteTypesAssignableFrom<T>().Select(x => x.FullName).ToList();
 
                             AnalyticsPageView pageView = null;
-                            AnalyticsSession analyticsSession = null;
-                            AnalyticsUser analyticsUser = null;
+                            //AnalyticsSession analyticsSession = null;
+                            //AnalyticsUser analyticsUser = null;
                             Webpage webpageAlias = null;
                             Webpage parentAlias = null;
 
                             var queryOver = _statelessSession.QueryOver(() => pageView)
                                 .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin)
-                                .JoinAlias(() => pageView.AnalyticsSession, () => analyticsSession)
-                                .JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
+                                //.JoinAlias(() => pageView.AnalyticsSession, () => analyticsSession)
+                                //.JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
                                 .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
                             // Filter by last x days
@@ -90,9 +90,9 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             var ids = queryOver
                                 .Select(Projections.Group<AnalyticsPageView>(view => view.Webpage.Id))
-                                .OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
-                                .ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
-                                .ThenBy(Projections.CountDistinct(() => pageView.Id)).Desc
+                                //.OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
+                                //.ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
+                                .OrderBy(Projections.Count(() => pageView.Webpage.Id)).Desc
                                 .Take(numberOfPages)
                                 .List<int>().ToList();
 
