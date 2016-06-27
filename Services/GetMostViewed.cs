@@ -49,11 +49,11 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             AnalyticsPageView pageView = null;
                             Webpage webpageAlias = null;
-                            Webpage parentAlias = null;
+                            //Webpage parentAlias = null;
 
                             var queryOver = _statelessSession.QueryOver(() => pageView)
-                                .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin)
-                                .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
+                                .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin);
+                                //.JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
                             // Filter by last x hours
                             queryOver = queryOver.Where(() => pageView.CreatedOn >= fromDate);
