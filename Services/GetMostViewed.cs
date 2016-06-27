@@ -94,11 +94,13 @@ namespace MrCMS.Web.Apps.Stats.Services
                                 //.ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
                                 .OrderBy(Projections.Count(() => pageView.Webpage.Id)).Desc
                                 .Take(numberOfPages)
+                                .Cacheable()
                                 .List<int>().ToList();
 
                             return _session.QueryOver<T>()
                                 .Where(x => x.Id.IsIn(ids))
                                 .Fetch(x=>x.Parent).Eager
+                                .Cacheable()
                                 .List()
                                 .OrderBy(article => ids.IndexOf(article.Id))
                                 .ToList();
@@ -125,10 +127,10 @@ namespace MrCMS.Web.Apps.Stats.Services
                             //var articles = _session.QueryOver<T>().Where(x => x.Id.IsIn(articleIds)).Cacheable().List();
 
                             //return articles.OrderBy(x => articleIds.IndexOf(x.Id)).ToList();
-                        }, TimeSpan.FromMinutes(15), CacheExpiryType.Absolute);
+                        }, TimeSpan.FromMinutes(1800), CacheExpiryType.Absolute);
                 }
         }
-
+         
         public class TopArticlesInfo
         {
             public int Count { get; set; }
