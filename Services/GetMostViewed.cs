@@ -18,15 +18,13 @@ namespace MrCMS.Web.Apps.Stats.Services
     {
         private static readonly object LockObject = new object();
         private readonly ICacheManager _cacheManager;
-        private readonly ISession _session;
         private readonly Site _site;
         private readonly IStatelessSession _statelessSession;
 
 
-        public GetMostViewed(IStatelessSession statelessSession, ISession session, ICacheManager cacheManager, Site site)
+        public GetMostViewed(IStatelessSession statelessSession,  ICacheManager cacheManager, Site site)
         {
             _statelessSession = statelessSession;
-            _session = session;
             _cacheManager = cacheManager;
             _site = site;
         }
@@ -44,29 +42,21 @@ namespace MrCMS.Web.Apps.Stats.Services
                         {
                             var now = CurrentRequestData.Now;
 
-                            var fromDate = now.AddHours(-lastXHours);
+                            var fromDate = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0).AddHours(-lastXHours);
 
                             var pageTypes =
                                 TypeHelper.GetAllConcreteTypesAssignableFrom<T>().Select(x => x.FullName).ToList();
 
                             AnalyticsPageView pageView = null;
-                            //AnalyticsSession analyticsSession = null;
-                            //AnalyticsUser analyticsUser = null;
                             Webpage webpageAlias = null;
                             Webpage parentAlias = null;
 
                             var queryOver = _statelessSession.QueryOver(() => pageView)
                                 .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin)
-                                //.JoinAlias(() => pageView.AnalyticsSession, () => analyticsSession)
-                                //.JoinAlias(() => analyticsSession.AnalyticsUser, () => analyticsUser)
                                 .JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
-                            // Filter by last x days
-                            queryOver =
-                                queryOver.Where(
-                                    () =>
-                                        pageView.CreatedOn >= fromDate &&
-                                        pageView.CreatedOn <= now);
+                            // Filter by last x hours
+                            queryOver = queryOver.Where(() => pageView.CreatedOn >= fromDate);
 
                             queryOver = queryOver.Where(() => webpageAlias.DocumentType.IsIn(pageTypes));
 
@@ -90,47 +80,22 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             var ids = queryOver
                                 .Select(Projections.Group<AnalyticsPageView>(view => view.Webpage.Id))
-                                //.OrderBy(Projections.CountDistinct(() => analyticsUser.Id)).Desc
-                                //.ThenBy(Projections.CountDistinct(() => analyticsSession.Id)).Desc
                                 .OrderBy(Projections.Count(() => pageView.Webpage.Id)).Desc
                                 .Take(numberOfPages)
                                 .Cacheable()
                                 .List<int>().ToList();
 
-                            return _session.QueryOver<T>()
+                            return _statelessSession.QueryOver<T>()
                                 .Where(x => x.Id.IsIn(ids))
-                                .Fetch(x=>x.Parent).Eager
+                                .Fetch(x => x.Parent).Eager
                                 .Cacheable()
                                 .List()
                                 .OrderBy(article => ids.IndexOf(article.Id))
                                 .ToList();
-
-                            //var queryOver = _statelessSession.QueryOver<PageViewSummary>()
-                            //    .Where(x => x.PageType.IsIn(pageTypes))
-                            //    .And(x => x.Date >= fromDate && x.Date < startOfThisHour)
-                            //    .And(x => x.Site.Id == _site.Id);
-                            //queryOver = parent == null
-                            //    ? queryOver.Where(x => x.Parent == null)
-                            //    : queryOver.Where(x => x.Parent.Id == parent.Id);
-                            //TopArticlesInfo info = null;
-                            //var topArticlesInfos = queryOver.SelectList(builder =>
-                            //{
-                            //    builder.SelectGroup(x => x.Webpage.Id).WithAlias(() => info.PageId);
-                            //    builder.SelectSum(x => x.Views).WithAlias(() => info.Count);
-                            //    return builder;
-                            //}).TransformUsing(Transformers.AliasToBean<TopArticlesInfo>())
-                            //    .OrderBy(Projections.Sum<PageViewSummary>(x => x.Views)).Desc
-                            //    .Take(numberOfPages)
-                            //    .List<TopArticlesInfo>();
-                            //var articleIds = topArticlesInfos.Select(x => x.PageId).ToList();
-
-                            //var articles = _session.QueryOver<T>().Where(x => x.Id.IsIn(articleIds)).Cacheable().List();
-
-                            //return articles.OrderBy(x => articleIds.IndexOf(x.Id)).ToList();
                         }, TimeSpan.FromMinutes(1800), CacheExpiryType.Absolute);
                 }
         }
-         
+
         public class TopArticlesInfo
         {
             public int Count { get; set; }
