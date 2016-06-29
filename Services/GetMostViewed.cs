@@ -49,11 +49,9 @@ namespace MrCMS.Web.Apps.Stats.Services
 
                             AnalyticsPageView pageView = null;
                             Webpage webpageAlias = null;
-                            //Webpage parentAlias = null;
 
                             var queryOver = _statelessSession.QueryOver(() => pageView)
                                 .JoinAlias(() => pageView.Webpage, () => webpageAlias, JoinType.LeftOuterJoin);
-                                //.JoinAlias(() => webpageAlias.Parent, () => parentAlias);
 
                             // Filter by last x hours
                             queryOver = queryOver.Where(() => pageView.CreatedOn >= fromDate);
@@ -66,10 +64,10 @@ namespace MrCMS.Web.Apps.Stats.Services
                             if (parent != null)
                             {
                                 queryOver =
-                                    queryOver.WithSubquery.WhereExists(
-                                        QueryOver.Of<AnalyticsHierarchyInfo>()
-                                            .Where(x => x.Page.Id == webpageAlias.Id && x.Parent.Id == parent.Id)
-                                            .Select(x => x.Id));
+                                    queryOver.WithSubquery.WhereProperty(x => x.Webpage.Id)
+                                        .In(QueryOver.Of<AnalyticsHierarchyInfo>()
+                                            .Where(x => x.Parent.Id == parent.Id)
+                                            .Select(x => x.Page.Id));
                             }
                             else
                             {
