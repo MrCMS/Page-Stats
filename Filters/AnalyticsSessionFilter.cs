@@ -12,10 +12,11 @@ namespace MrCMS.Web.Apps.Stats.Filters
         private const string AnalyticsUserKey = "mrcms.analytics.user";
         private const string AnalyticsSessionKey = "mrcms.analytics.session";
 
+        public const string UserGuidHasChanged = "mrcms.analytics.user-guid-changed";
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (!CurrentRequestData.DatabaseIsInstalled)
-                return; 
+                return;
 
             var botAgentsAndIPs = filterContext.HttpContext.Get<BotAgentsAndIPs>();
             if (botAgentsAndIPs.IsABot(filterContext.HttpContext.Request))
@@ -23,8 +24,17 @@ namespace MrCMS.Web.Apps.Stats.Filters
 
             var httpContext = filterContext.HttpContext;
             var now = CurrentRequestData.Now;
+            var userCookie = httpContext.Request.Cookies[AnalyticsUserKey];
+            var userGuid = userCookie?.Value;
+            var currentUserGuid = CurrentRequestData.UserGuid.ToString();
+
+            if (userGuid != null && userGuid != currentUserGuid)
+            {
+                httpContext.Response.SetCookie(new HttpCookie(UserGuidHasChanged, userGuid));
+            }
+
             httpContext.Response.SetCookie(
-                new HttpCookie(AnalyticsUserKey, CurrentRequestData.UserGuid.ToString())
+                new HttpCookie(AnalyticsUserKey, currentUserGuid)
                 {
                     Expires = now.AddYears(1)
                 });

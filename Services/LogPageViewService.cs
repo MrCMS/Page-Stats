@@ -7,6 +7,7 @@ using MrCMS.Entities.People;
 using MrCMS.Helpers;
 using MrCMS.Services;
 using MrCMS.Web.Apps.Stats.Entities;
+using MrCMS.Web.Apps.Stats.Helpers;
 using MrCMS.Web.Apps.Stats.Models;
 using MrCMS.Website;
 using NHibernate;
@@ -16,16 +17,16 @@ namespace MrCMS.Web.Apps.Stats.Services
     public class LogPageViewService : ILogPageViewService
     {
         private readonly IGetCurrentUser _getCurrentUser;
-        private readonly HttpRequestBase _request;
+        private readonly HttpContextBase _context;
         private readonly IStatelessSession _session;
         private readonly Site _site;
 
-        public LogPageViewService(IStatelessSession session, IGetCurrentUser getCurrentUser, HttpRequestBase request,
+        public LogPageViewService(IStatelessSession session, IGetCurrentUser getCurrentUser, HttpContextBase context,
             Site site)
         {
             _session = session;
             _getCurrentUser = getCurrentUser;
-            _request = request;
+            _context = context;
             _site = site;
         }
 
@@ -34,7 +35,7 @@ namespace MrCMS.Web.Apps.Stats.Services
             User user = _getCurrentUser.Get();
             var site = _session.Get<Site>(_site.Id);
             DateTime now = CurrentRequestData.Now;
-            AnalyticsUser analyticsUser = GetCurrentUser(user == null ? info.User : user.Guid);
+            AnalyticsUser analyticsUser = GetUser(user == null ? info.User : user.Guid);
             bool userIsNew = analyticsUser == null;
             if (userIsNew)
             {
@@ -49,19 +50,29 @@ namespace MrCMS.Web.Apps.Stats.Services
             }
             AnalyticsSession analyticsSession = GetCurrentSession(info.Session);
             bool sessionIsNew = analyticsSession == null;
+            var changedResult = _context.AnalyticsUserGuidHasChanged();
             if (sessionIsNew)
             {
                 analyticsSession = new AnalyticsSession
                 {
                     AnalyticsUser = analyticsUser,
-                    IP = _request.GetCurrentIP(),
-                    UserAgent = _request.UserAgent,
+                    IP = _context.GetCurrentIP(),
+                    UserAgent = _context.Request.UserAgent,
                     Site = site,
                     CreatedOn = now,
                     UpdatedOn = now,
                 };
                 analyticsSession.SetGuid(info.Session);
                 _session.Insert(analyticsSession);
+            }
+            // only move it if it's going to a live user
+            else if (changedResult.Changed && analyticsUser.User != null)
+            {
+                analyticsSession.AnalyticsUser = analyticsUser;
+                _session.Update(analyticsSession);
+
+                if (changedResult.OldGuid.HasValue)
+                    UpdateOldUsersSessions(changedResult.OldGuid.Value, analyticsUser);
             }
 
             var pageView = new AnalyticsPageView
@@ -75,6 +86,23 @@ namespace MrCMS.Web.Apps.Stats.Services
             };
 
             _session.Insert(pageView);
+        }
+
+        private void UpdateOldUsersSessions(Guid guid, AnalyticsUser analyticsUser)
+        {
+            var oldUser = GetUser(guid);
+            if (oldUser != null)
+            {
+                // this must have been the current user, so move over their sessions
+                var analyticsSessions =
+                    _session.QueryOver<AnalyticsSession>().Where(x => x.AnalyticsUser.Id == oldUser.Id).List();
+                foreach (var session in analyticsSessions)
+                {
+                    session.AnalyticsUser = analyticsUser;
+                    _session.Update(session);
+                }
+                _session.Delete(oldUser);
+            }
         }
 
         private Webpage GetWebpage(string url)
@@ -101,7 +129,7 @@ namespace MrCMS.Web.Apps.Stats.Services
                 .List().FirstOrDefault();
         }
 
-        private AnalyticsUser GetCurrentUser(Guid guid)
+        private AnalyticsUser GetUser(Guid guid)
         {
             return _session.QueryOver<AnalyticsUser>().Where(user => user.Guid == guid)
                 .Cacheable()
