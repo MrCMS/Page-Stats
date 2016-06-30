@@ -86,14 +86,13 @@ namespace MrCMS.Web.Apps.Stats.Services
 
         private void UpdateOldUsersSessions(AnalyticsHttpContextExtensions.AnalyticsUserChangedResult changedResult, AnalyticsSession analyticsSession, AnalyticsUser analyticsUser)
         {
+            if (!changedResult.OldGuid.HasValue || analyticsUser.Guid == changedResult.OldGuid.Value)
+                return;
+
             _session.Transact(session =>
             {
-
                 analyticsSession.AnalyticsUser = analyticsUser;
                 _session.Update(analyticsSession);
-
-                if (!changedResult.OldGuid.HasValue)
-                    return;
 
                 var oldUser = GetUser(changedResult.OldGuid.Value);
                 if (oldUser != null && oldUser.Id != analyticsUser.Id)
