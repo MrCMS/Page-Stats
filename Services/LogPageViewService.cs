@@ -96,7 +96,7 @@ namespace MrCMS.Web.Apps.Stats.Services
                     return;
 
                 var oldUser = GetUser(changedResult.OldGuid.Value);
-                if (oldUser != null)
+                if (oldUser != null && oldUser.Id != analyticsUser.Id)
                 {
                     // this must have been the current user, so move over their sessions
                     var analyticsSessions =
