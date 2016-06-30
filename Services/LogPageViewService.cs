@@ -68,11 +68,7 @@ namespace MrCMS.Web.Apps.Stats.Services
             // only move it if it's going to a live user
             else if (changedResult.Changed && analyticsUser.User != null)
             {
-                analyticsSession.AnalyticsUser = analyticsUser;
-                _session.Update(analyticsSession);
-
-                if (changedResult.OldGuid.HasValue)
-                    UpdateOldUsersSessions(changedResult.OldGuid.Value, analyticsUser);
+                UpdateOldUsersSessions(changedResult, analyticsSession, analyticsUser);
             }
 
             var pageView = new AnalyticsPageView
@@ -88,21 +84,31 @@ namespace MrCMS.Web.Apps.Stats.Services
             _session.Insert(pageView);
         }
 
-        private void UpdateOldUsersSessions(Guid guid, AnalyticsUser analyticsUser)
+        private void UpdateOldUsersSessions(AnalyticsHttpContextExtensions.AnalyticsUserChangedResult changedResult, AnalyticsSession analyticsSession, AnalyticsUser analyticsUser)
         {
-            var oldUser = GetUser(guid);
-            if (oldUser != null)
+            _session.Transact(session =>
             {
-                // this must have been the current user, so move over their sessions
-                var analyticsSessions =
-                    _session.QueryOver<AnalyticsSession>().Where(x => x.AnalyticsUser.Id == oldUser.Id).List();
-                foreach (var session in analyticsSessions)
+
+                analyticsSession.AnalyticsUser = analyticsUser;
+                _session.Update(analyticsSession);
+
+                if (!changedResult.OldGuid.HasValue)
+                    return;
+
+                var oldUser = GetUser(changedResult.OldGuid.Value);
+                if (oldUser != null)
                 {
-                    session.AnalyticsUser = analyticsUser;
-                    _session.Update(session);
+                    // this must have been the current user, so move over their sessions
+                    var analyticsSessions =
+                        _session.QueryOver<AnalyticsSession>().Where(x => x.AnalyticsUser.Id == oldUser.Id).List();
+                    foreach (var entity in analyticsSessions)
+                    {
+                        entity.AnalyticsUser = analyticsUser;
+                        _session.Update(entity);
+                    }
+                    _session.Delete(oldUser);
                 }
-                _session.Delete(oldUser);
-            }
+            });
         }
 
         private Webpage GetWebpage(string url)
