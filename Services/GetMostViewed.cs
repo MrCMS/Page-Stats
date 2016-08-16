@@ -22,7 +22,7 @@ namespace MrCMS.Web.Apps.Stats.Services
         private readonly IStatelessSession _statelessSession;
 
 
-        public GetMostViewed(IStatelessSession statelessSession,  ICacheManager cacheManager, Site site)
+        public GetMostViewed(IStatelessSession statelessSession, ICacheManager cacheManager, Site site)
         {
             _statelessSession = statelessSession;
             _cacheManager = cacheManager;
@@ -86,6 +86,7 @@ namespace MrCMS.Web.Apps.Stats.Services
                             return _statelessSession.QueryOver<T>()
                                 .Where(x => x.Id.IsIn(ids))
                                 .Fetch(x => x.Parent).Eager
+                                .Fetch(x => x.Site).Eager
                                 .Cacheable()
                                 .List()
                                 .OrderBy(article => ids.IndexOf(article.Id))
