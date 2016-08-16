@@ -56,10 +56,12 @@ namespace MrCMS.Web.Apps.Stats.Services
                             // Filter by last x hours
                             queryOver = queryOver.Where(() => pageView.CreatedOn >= fromDate);
 
-                            queryOver = queryOver.Where(() => webpageAlias.DocumentType.IsIn(pageTypes));
+                            queryOver =
+                                queryOver.Where(
+                                    () => webpageAlias.DocumentType.IsIn(pageTypes) );
 
-                            // Remove unpublished items
-                            queryOver = queryOver.Where(() => webpageAlias.Published);
+                            // Remove unpublished and deleted items
+                            queryOver = queryOver.Where(() => webpageAlias.Published && !webpageAlias.IsDeleted);
 
                             if (parent != null)
                             {
