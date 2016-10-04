@@ -20,14 +20,16 @@ namespace MrCMS.Web.Apps.Stats.Services
         private readonly HttpContextBase _context;
         private readonly IStatelessSession _session;
         private readonly Site _site;
+        private readonly IGetEmailFromRequest _getEmailFromRequest;
 
         public LogPageViewService(IStatelessSession session, IGetCurrentUser getCurrentUser, HttpContextBase context,
-            Site site)
+            Site site, IGetEmailFromRequest getEmailFromRequest)
         {
             _session = session;
             _getCurrentUser = getCurrentUser;
             _context = context;
             _site = site;
+            _getEmailFromRequest = getEmailFromRequest;
         }
 
         public void LogPageView(PageViewInfo info)
@@ -48,6 +50,10 @@ namespace MrCMS.Web.Apps.Stats.Services
                 analyticsUser.SetGuid(info.User);
                 _session.Insert(analyticsUser);
             }
+
+            if (analyticsUser.RequiresEmailCheck && _getEmailFromRequest.CanCheck)
+                CheckEmail(analyticsUser, now);
+
             AnalyticsSession analyticsSession = GetCurrentSession(info.Session);
             bool sessionIsNew = analyticsSession == null;
             var changedResult = _context.AnalyticsUserGuidHasChanged();
@@ -82,6 +88,19 @@ namespace MrCMS.Web.Apps.Stats.Services
             };
 
             _session.Insert(pageView);
+        }
+
+        private void CheckEmail(AnalyticsUser analyticsUser, DateTime now)
+        {
+            var result = _getEmailFromRequest.GetEmail(_context);
+            if (!result.CouldLookup)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(result.Email))
+                analyticsUser.Email = result.Email;
+            else
+                analyticsUser.DateLastChecked = now;
+            _session.Transact(session => session.Update(analyticsUser));
         }
 
         private void UpdateOldUsersSessions(AnalyticsHttpContextExtensions.AnalyticsUserChangedResult changedResult, AnalyticsSession analyticsSession, AnalyticsUser analyticsUser)

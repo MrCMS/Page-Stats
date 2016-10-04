@@ -11,6 +11,18 @@
     var analytics = function () {
         var userGuidKey = 'mrcms.analytics.user';
         var userSessionKey = 'mrcms.analytics.session';
+
+        function getParam(p) {
+            var match = RegExp('[?&]' + p + '=([^&]*)').exec(window.location.search);
+            return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+        }
+        
+        function gutToCookie() {
+            var gutid = getParam('gutid');
+            if (gutid) {
+                $.cookie('gutid', gutid);
+            }
+        }
         function logPageView() {
             if (!cookiesEnabled() || !$.cookie)
                 return;
@@ -30,11 +42,14 @@
         }
 
         return {
+            gutToCookie: gutToCookie,
             logPageView: logPageView
         };
     };
 
     $(function () {
-        analytics().logPageView();
+        var a = analytics();
+        a.gutToCookie();
+        a.logPageView();
     });
 })(jQuery);
