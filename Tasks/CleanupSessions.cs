@@ -31,7 +31,7 @@ namespace MrCMS.Web.Apps.Stats.Tasks
                 .JoinAlias(x => x.AnalyticsUser, () => analyticsUser)
                 .Where(() => analyticsUser.Email == null && analyticsUser.User == null)
                 .And(x => x.CreatedOn < date)
-                .OrderBy(x => x.CreatedOn).Desc
+                //.OrderBy(x => x.CreatedOn).Desc no need to order by + timing out over large dataset
                 .Take(_settings.SessionsToClear)
                 .List();
 
