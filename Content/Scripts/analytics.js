@@ -18,11 +18,11 @@
         }
         
         function gutToCookie() {
-            var gutid = getParam('gutid');
-            if (gutid) {
-                $.cookie('gutid', gutid);
-            }
-        }
+           var gutid = getParam('gutid');
+           if (gutid) {
+               $.cookie('gutid', gutid, { expires: 7, path: '/' });
+           }
+		}
         function logPageView() {
             if (!cookiesEnabled() || !$.cookie)
                 return;
