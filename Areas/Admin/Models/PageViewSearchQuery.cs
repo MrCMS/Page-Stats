@@ -9,7 +9,7 @@ namespace MrCMS.Web.Apps.Stats.Areas.Admin.Models
         public PageViewSearchQuery()
         {
             Page = 1;
-            From = CurrentRequestData.Now.AddMonths(-1);
+            From = CurrentRequestData.Now.AddDays(-7);
             To = CurrentRequestData.Now;
         }
 
